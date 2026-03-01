@@ -25,7 +25,7 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount, onOpenCart }) => {
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          
+
           {/* Mobile Menu Button */}
           <div className="flex items-center md:hidden">
             <button
@@ -41,7 +41,7 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount, onOpenCart }) => {
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center justify-center md:justify-start flex-1 md:flex-none">
             <Link to="/" className="flex items-center gap-2">
-              <img src={settings?.siteLogo || LOGO_URL || null} alt={settings?.siteName || "YourTshirtDZ"} className="h-12 w-12 rounded-full object-cover border-2 border-brand-yellow" />
+              <img src={LOGO_URL} alt={settings?.siteName || "YourTshirtDZ"} className="h-12 w-12 rounded-full object-cover border-2 border-brand-yellow" />
               <span className="font-black text-xl tracking-tighter uppercase hidden sm:block">
                 {(settings?.siteName || 'YourTshirtDZ').split('DZ')[0]}<span className="text-brand-yellow">DZ</span>
               </span>
@@ -57,7 +57,7 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount, onOpenCart }) => {
 
           {/* Icons */}
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={toggleLanguage}
               className="flex items-center gap-1 text-sm font-bold text-gray-600 hover:text-black transition-colors"
             >
@@ -68,7 +68,7 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount, onOpenCart }) => {
             <button className="p-2 text-gray-500 hover:text-brand-yellow transition-colors hidden sm:block">
               <Search className="w-5 h-5" />
             </button>
-            <button 
+            <button
               onClick={onOpenCart}
               className="group flex items-center gap-2 bg-black text-white px-4 py-2 rounded-none hover:bg-brand-yellow hover:text-black transition-all duration-300"
             >

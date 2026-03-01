@@ -41,22 +41,6 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
           };
           setSettings(formattedSettings);
 
-          // Update document title and favicon dynamically
-          document.title = `${formattedSettings.siteName} | Fashion Store`;
-
-          const updateFavicon = (url: string) => {
-            let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-            if (!link) {
-              link = document.createElement('link');
-              link.rel = 'icon';
-              document.getElementsByTagName('head')[0].appendChild(link);
-            }
-            link.href = url;
-          };
-
-          if (formattedSettings.favicon) {
-            updateFavicon(formattedSettings.favicon);
-          }
         }
       } catch (err) {
         console.error('Error fetching settings:', err);
