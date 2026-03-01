@@ -22,7 +22,7 @@ const ProductView: React.FC<{
     const [openSection, setOpenSection] = useState<string | null>('description');
     const [showOrderForm, setShowOrderForm] = useState(false);
     const orderFormRef = React.useRef<HTMLDivElement | null>(null);
-
+    const navigate = useNavigate();
     const { t, language, dir } = useLanguage();
     const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
