@@ -19,16 +19,13 @@ function AppContent() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const { t, language } = useLanguage();
   const { settings } = useSettings();
 
-  // منتجات مميزة من نفس جدول products عبر العمود is_featured
-  const featuredProducts = React.useMemo(
-    () => products.filter((p) => p.isFeatured),
-    [products]
-  );
+  // سنقوم الآن بجلب المنتجات المميزة مباشرة من جدول featured_products
 
   useEffect(() => {
     const mapCategories = (data: any[]) =>
@@ -62,11 +59,12 @@ function AppContent() {
       }));
 
     const fetchFromDb = async () => {
-      const [catRes, prodRes] = await Promise.all([
+      const [catRes, prodRes, featRes] = await Promise.all([
         supabase.from('categories').select('*').order('id'),
         supabase
           .from('products')
-          .select(`*, variants:product_variants(*), category:categories(name_en)`)
+          .select(`*, variants:product_variants(*), category:categories(name_en)`),
+        supabase.from('featured_products').select('product_id')
       ]);
 
       if (!catRes.error && catRes.data) {
@@ -74,10 +72,28 @@ function AppContent() {
         setCategories(mapped);
         cacheSet(CACHE_KEYS.CATEGORIES, mapped);
       }
+      let currentProducts: Product[] = [];
       if (!prodRes.error && prodRes.data) {
-        const mapped = mapProducts(prodRes.data);
-        setProducts(mapped);
-        cacheSet(CACHE_KEYS.PRODUCTS, mapped);
+        currentProducts = mapProducts(prodRes.data);
+        setProducts(currentProducts);
+        cacheSet(CACHE_KEYS.PRODUCTS, currentProducts);
+      }
+
+      if (!featRes.error && featRes.data && currentProducts.length > 0) {
+        const featuredIds = featRes.data.map((f: any) => f.product_id);
+
+        // مزامنة خاصية isFeatured في قائمة المنتجات الرئيسية
+        const updatedProducts = currentProducts.map(p => ({
+          ...p,
+          isFeatured: featuredIds.includes(p.id)
+        }));
+
+        setProducts(updatedProducts);
+        cacheSet(CACHE_KEYS.PRODUCTS, updatedProducts);
+
+        const mappedFeatured = updatedProducts.filter(p => featuredIds.includes(p.id));
+        setFeaturedProducts(mappedFeatured);
+        cacheSet(CACHE_KEYS.FEATURED_PRODUCTS, mappedFeatured);
       }
     };
 
@@ -87,12 +103,16 @@ function AppContent() {
 
         const cachedCategories = cacheGet<Category[]>(CACHE_KEYS.CATEGORIES);
         const cachedProducts = cacheGet<Product[]>(CACHE_KEYS.PRODUCTS);
+        const cachedFeatured = cacheGet<Product[]>(CACHE_KEYS.FEATURED_PRODUCTS);
 
-        const hasValidCache = Array.isArray(cachedCategories) && Array.isArray(cachedProducts);
+        const hasValidCache = Array.isArray(cachedCategories) &&
+          Array.isArray(cachedProducts) &&
+          Array.isArray(cachedFeatured);
 
         if (hasValidCache) {
           setCategories(cachedCategories);
           setProducts(cachedProducts);
+          setFeaturedProducts(cachedFeatured);
           setLoading(false);
           // تحديث في الخلفية (stale-while-revalidate) لتحديث الكاش دون انتظار
           fetchFromDb();
