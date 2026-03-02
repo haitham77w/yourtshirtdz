@@ -79,21 +79,33 @@ function AppContent() {
         cacheSet(CACHE_KEYS.PRODUCTS, currentProducts);
       }
 
-      if (!featRes.error && featRes.data && currentProducts.length > 0) {
-        const featuredIds = featRes.data.map((f: any) => f.product_id);
+      if (featRes.error) {
+        console.error('Error fetching featured products:', featRes.error);
+        // في حالة الخطأ، قد نفضل تصفية المنتجات التي تحمل علامة isFeatured قادمة من جدول المنتجات كحل احتياطي
+        const fallbackFeatured = currentProducts.filter(p => p.isFeatured);
+        setFeaturedProducts(fallbackFeatured);
+        return;
+      }
+
+      if (featRes.data && currentProducts.length > 0) {
+        const featuredIds = featRes.data.map((f: any) => String(f.product_id));
 
         // مزامنة خاصية isFeatured في قائمة المنتجات الرئيسية
         const updatedProducts = currentProducts.map(p => ({
           ...p,
-          isFeatured: featuredIds.includes(p.id)
+          isFeatured: featuredIds.includes(String(p.id))
         }));
 
         setProducts(updatedProducts);
         cacheSet(CACHE_KEYS.PRODUCTS, updatedProducts);
 
-        const mappedFeatured = updatedProducts.filter(p => featuredIds.includes(p.id));
+        const mappedFeatured = updatedProducts.filter(p => featuredIds.includes(String(p.id)));
         setFeaturedProducts(mappedFeatured);
         cacheSet(CACHE_KEYS.FEATURED_PRODUCTS, mappedFeatured);
+      } else {
+        // إذا كان الجدول فارغاً
+        setFeaturedProducts([]);
+        cacheSet(CACHE_KEYS.FEATURED_PRODUCTS, []);
       }
     };
 
