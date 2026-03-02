@@ -59,54 +59,55 @@ function AppContent() {
       }));
 
     const fetchFromDb = async () => {
+      console.log('Fetching from DB...');
       const [catRes, prodRes, featRes] = await Promise.all([
         supabase.from('categories').select('*').order('id'),
         supabase
           .from('products')
           .select(`*, variants:product_variants(*), category:categories(name_en)`),
-        supabase.from('featured_products').select('product_id')
+        supabase.from('featured_products').select('*')
       ]);
+
+      if (catRes.error) console.error('Error fetching categories:', catRes.error);
+      if (prodRes.error) console.error('Error fetching products:', prodRes.error);
+
+      // لا نعتبر خطأ featRes عائقاً كبيراً، قد لا يكون الجدول موجوداً
+      if (featRes.error) console.warn('Note: featured_products table fetch issue:', featRes.error);
 
       if (!catRes.error && catRes.data) {
         const mapped = mapCategories(catRes.data);
         setCategories(mapped);
         cacheSet(CACHE_KEYS.CATEGORIES, mapped);
       }
+
       let currentProducts: Product[] = [];
       if (!prodRes.error && prodRes.data) {
         currentProducts = mapProducts(prodRes.data);
-        setProducts(currentProducts);
-        cacheSet(CACHE_KEYS.PRODUCTS, currentProducts);
       }
 
-      if (featRes.error) {
-        console.error('Error fetching featured products:', featRes.error);
-        // في حالة الخطأ، قد نفضل تصفية المنتجات التي تحمل علامة isFeatured قادمة من جدول المنتجات كحل احتياطي
-        const fallbackFeatured = currentProducts.filter(p => p.isFeatured);
-        setFeaturedProducts(fallbackFeatured);
-        return;
-      }
+      // جلب المعرفات من جدول featured_products إن وجد
+      const extraFeaturedIds = featRes.data
+        ? featRes.data.map((f: any) => String(f.product_id || f.id || '')).filter(Boolean)
+        : [];
 
-      if (featRes.data && currentProducts.length > 0) {
-        const featuredIds = featRes.data.map((f: any) => String(f.product_id));
+      // مزامنة ودمج المصدرين: عمود is_featured و جدول featured_products
+      const updatedProducts = currentProducts.map(p => ({
+        ...p,
+        isFeatured: p.isFeatured || extraFeaturedIds.includes(String(p.id))
+      }));
 
-        // مزامنة خاصية isFeatured في قائمة المنتجات الرئيسية
-        const updatedProducts = currentProducts.map(p => ({
-          ...p,
-          isFeatured: featuredIds.includes(String(p.id))
-        }));
+      console.log('Total products:', updatedProducts.length);
+      console.log('Products marked as isFeatured in DB:', updatedProducts.filter(p => p.isFeatured).length);
+      console.log('Featured IDs from separate table:', extraFeaturedIds);
 
-        setProducts(updatedProducts);
-        cacheSet(CACHE_KEYS.PRODUCTS, updatedProducts);
+      setProducts(updatedProducts);
+      cacheSet(CACHE_KEYS.PRODUCTS, updatedProducts);
 
-        const mappedFeatured = updatedProducts.filter(p => featuredIds.includes(String(p.id)));
-        setFeaturedProducts(mappedFeatured);
-        cacheSet(CACHE_KEYS.FEATURED_PRODUCTS, mappedFeatured);
-      } else {
-        // إذا كان الجدول فارغاً
-        setFeaturedProducts([]);
-        cacheSet(CACHE_KEYS.FEATURED_PRODUCTS, []);
-      }
+      const combinedFeatured = updatedProducts.filter(p => p.isFeatured);
+      console.log('Final combined featured products count:', combinedFeatured.length);
+
+      setFeaturedProducts(combinedFeatured);
+      cacheSet(CACHE_KEYS.FEATURED_PRODUCTS, combinedFeatured);
     };
 
     const loadWithCache = async () => {
