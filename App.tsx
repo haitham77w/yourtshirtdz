@@ -6,7 +6,6 @@ import ProductsPage from './pages/Products';
 import ProductDetails from './pages/ProductDetails';
 import Checkout from './pages/Checkout';
 import About from './pages/About';
-import ThankYou from './pages/ThankYou';
 import CartDrawer from './components/CartDrawer';
 import { Product, CartItem, Category } from './types';
 import { Facebook, Instagram, Twitter, Loader2 } from 'lucide-react';
@@ -19,13 +18,16 @@ function AppContent() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const { t, language } = useLanguage();
   const { settings } = useSettings();
 
-  // سنقوم الآن بجلب المنتجات المميزة مباشرة من جدول featured_products
+  // منتجات مميزة من نفس جدول products عبر العمود is_featured
+  const featuredProducts = React.useMemo(
+    () => products.filter((p) => p.isFeatured),
+    [products]
+  );
 
   useEffect(() => {
     const mapCategories = (data: any[]) =>
@@ -37,77 +39,63 @@ function AppContent() {
       }));
 
     const mapProducts = (data: any[]) =>
-      data.map((p: any) => ({
-        id: p.id,
-        categoryId: p.category_id,
-        nameAr: p.name_ar,
-        nameEn: p.name_en,
-        descriptionAr: p.description_ar,
-        descriptionEn: p.description_en,
-        price: p.price,
-        originalPrice: p.original_price,
-        image: p.image_url,
-        category: p.category ? p.category.name_en : 'Uncategorized',
-        isFeatured: !!p.is_featured,
-        variants: (p.variants || []).map((v: any) => ({
-          id: v.id,
-          size: v.size,
-          color: v.color,
-          quantity: v.quantity,
-          sku: v.sku
-        }))
-      }));
+      data.map((p: any) => {
+        // Robust handling of image arrays (Supabase might return text[] as array or string "{...}")
+        const rawImagesUrls = p.images_urls || p.image_urls || [];
+        const imagesUrlsArray = Array.isArray(rawImagesUrls)
+          ? rawImagesUrls
+          : (typeof rawImagesUrls === 'string' && rawImagesUrls.startsWith('{')
+            ? rawImagesUrls.slice(1, -1).split(',').map(s => s.trim().replace(/^"(.*)"$/, '$1'))
+            : []);
+
+        const rawPublicIds = p.images_public_ids || p.image_public_ids || [];
+        const publicIdsArray = Array.isArray(rawPublicIds) ? rawPublicIds : [];
+
+        // Prioritize the first image from the new array, but fallback to old image_url if array is empty
+        const primaryImage = (imagesUrlsArray.length > 0) ? imagesUrlsArray[0] : (p.image_url || '');
+
+        return {
+          id: p.id,
+          categoryId: p.category_id,
+          nameAr: p.name_ar,
+          nameEn: p.name_en,
+          descriptionAr: p.description_ar,
+          descriptionEn: p.description_en,
+          price: p.price,
+          originalPrice: p.original_price,
+          image: primaryImage,
+          imagesUrls: imagesUrlsArray,
+          imagesPublicIds: publicIdsArray,
+          category: p.category ? p.category.name_en : 'Uncategorized',
+          isFeatured: !!p.is_featured,
+          variants: (p.variants || []).map((v: any) => ({
+            id: v.id,
+            size: v.size,
+            color: v.color,
+            quantity: v.quantity,
+            sku: v.sku
+          }))
+        };
+      });
 
     const fetchFromDb = async () => {
-      console.log('Fetching from DB...');
-      const [catRes, prodRes, featRes] = await Promise.all([
+      const [catRes, prodRes] = await Promise.all([
         supabase.from('categories').select('*').order('id'),
         supabase
           .from('products')
-          .select(`*, variants:product_variants(*), category:categories(name_en)`),
-        supabase.from('featured_products').select('*')
+          .select(`*, variants:product_variants(*), category:categories(name_en)`)
       ]);
-
-      if (catRes.error) console.error('Error fetching categories:', catRes.error);
-      if (prodRes.error) console.error('Error fetching products:', prodRes.error);
-
-      // لا نعتبر خطأ featRes عائقاً كبيراً، قد لا يكون الجدول موجوداً
-      if (featRes.error) console.warn('Note: featured_products table fetch issue:', featRes.error);
 
       if (!catRes.error && catRes.data) {
         const mapped = mapCategories(catRes.data);
         setCategories(mapped);
         cacheSet(CACHE_KEYS.CATEGORIES, mapped);
       }
-
-      let currentProducts: Product[] = [];
       if (!prodRes.error && prodRes.data) {
-        currentProducts = mapProducts(prodRes.data);
+        const mapped = mapProducts(prodRes.data);
+        setProducts(mapped);
+        cacheSet(CACHE_KEYS.PRODUCTS, mapped);
       }
-
-      // جلب المعرفات من جدول featured_products إن وجد
-      const extraFeaturedIds = featRes.data
-        ? featRes.data.map((f: any) => String(f.product_id || f.id || '')).filter(Boolean)
-        : [];
-
-      // مزامنة ودمج المصدرين: عمود is_featured و جدول featured_products
-      const updatedProducts = currentProducts.map(p => ({
-        ...p,
-        isFeatured: p.isFeatured || extraFeaturedIds.includes(String(p.id))
-      }));
-
-      console.log('Total products:', updatedProducts.length);
-      console.log('Products marked as isFeatured in DB:', updatedProducts.filter(p => p.isFeatured).length);
-      console.log('Featured IDs from separate table:', extraFeaturedIds);
-
-      setProducts(updatedProducts);
-      cacheSet(CACHE_KEYS.PRODUCTS, updatedProducts);
-
-      const combinedFeatured = updatedProducts.filter(p => p.isFeatured);
-      console.log('Final combined featured products count:', combinedFeatured.length);
-
-      setFeaturedProducts(combinedFeatured);
-      cacheSet(CACHE_KEYS.FEATURED_PRODUCTS, combinedFeatured);
     };
 
     const loadWithCache = async () => {
@@ -116,16 +104,12 @@ function AppContent() {
 
         const cachedCategories = cacheGet<Category[]>(CACHE_KEYS.CATEGORIES);
         const cachedProducts = cacheGet<Product[]>(CACHE_KEYS.PRODUCTS);
-        const cachedFeatured = cacheGet<Product[]>(CACHE_KEYS.FEATURED_PRODUCTS);
 
-        const hasValidCache = Array.isArray(cachedCategories) &&
-          Array.isArray(cachedProducts) &&
-          Array.isArray(cachedFeatured);
+        const hasValidCache = Array.isArray(cachedCategories) && Array.isArray(cachedProducts);
 
         if (hasValidCache) {
           setCategories(cachedCategories);
           setProducts(cachedProducts);
-          setFeaturedProducts(cachedFeatured);
           setLoading(false);
           // تحديث في الخلفية (stale-while-revalidate) لتحديث الكاش دون انتظار
           fetchFromDb();
@@ -204,7 +188,6 @@ function AppContent() {
                 onClearCart={clearCart}
               />
             } />
-            <Route path="/thank-you" element={<ThankYou />} />
             <Route path="/about-us" element={<About />} />
           </Routes>
         </main>

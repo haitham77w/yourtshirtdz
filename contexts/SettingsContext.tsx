@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { SiteSettings } from '../types';
-import { LOGO_URL } from '../constants';
 
 interface SettingsContextType {
   settings: SiteSettings | null;
@@ -29,18 +28,24 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
           const formattedSettings: SiteSettings = {
             id: data.id,
             siteName: data.site_name,
-            siteLogo: data.site_logo || LOGO_URL,
-            favicon: data.favicon || LOGO_URL,
+            siteLogo: data.site_logo,
+            favicon: data.favicon,
             aboutDescriptionAr: data.about_description_ar,
             aboutDescriptionEn: data.about_description_en,
             phoneNumber: data.phone_number,
-            aboutLogo: data.about_logo || data.site_logo || LOGO_URL,
+            aboutLogo: data.about_logo,
             storeLocationUrl: data.store_location_url,
             instagramUrl: data.instagram_url,
             facebookUrl: data.facebook_url,
           };
           setSettings(formattedSettings);
 
+          // Update document title and favicon dynamically
+          document.title = `${formattedSettings.siteName} | Fashion Store`;
+          const faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+          if (faviconLink && formattedSettings.favicon) {
+            faviconLink.href = formattedSettings.favicon;
+          }
         }
       } catch (err) {
         console.error('Error fetching settings:', err);

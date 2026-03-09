@@ -21,8 +21,9 @@ const ProductView: React.FC<{
     const [error, setError] = useState('');
     const [openSection, setOpenSection] = useState<string | null>('description');
     const [showOrderForm, setShowOrderForm] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const orderFormRef = React.useRef<HTMLDivElement | null>(null);
-    const navigate = useNavigate();
+
     const { t, language, dir } = useLanguage();
     const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
@@ -118,20 +119,66 @@ const ProductView: React.FC<{
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
 
-                    {/* LEFT COLUMN: Product Image */}
+                    {/* LEFT COLUMN: Product Image Gallery */}
                     <div className="lg:col-span-7">
                         <div className="sticky top-24">
-                            <div className="relative aspect-[3/4] md:aspect-square bg-gray-100 overflow-hidden border-2 border-transparent group">
-                                <img
-                                    src={product.image || null}
-                                    alt={productName}
-                                    className="w-full h-full object-cover transition-transform duration-700 md:group-hover:scale-110 cursor-zoom-in"
-                                />
-                                {product.originalPrice && product.originalPrice > product.price && (
-                                    <div className="absolute top-4 left-4 bg-brand-yellow text-black px-3 py-1 text-sm font-black uppercase tracking-widest border border-black">
-                                        {t('sale')}
+                            <div className="flex flex-col md:flex-row gap-4">
+                                {/* Thumbnails - Side on Desktop, Bottom on Mobile */}
+                                {product.imagesUrls && product.imagesUrls.length > 1 && (
+                                    <div className="order-2 md:order-1 flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar max-h-[100px] md:max-h-[500px]">
+                                        {product.imagesUrls.map((img, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setCurrentImageIndex(idx)}
+                                                className={`relative flex-shrink-0 w-20 h-24 md:w-24 md:h-32 border-2 transition-all ${currentImageIndex === idx ? 'border-brand-yellow scale-[0.98]' : 'border-transparent hover:border-gray-300'}`}
+                                            >
+                                                <img
+                                                    src={img}
+                                                    alt={`${productName} thumbnail ${idx + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </button>
+                                        ))}
                                     </div>
                                 )}
+
+                                {/* Main Image */}
+                                <div className="order-1 md:order-2 flex-1 relative aspect-[3/4] md:aspect-square bg-gray-100 overflow-hidden border-2 border-transparent group">
+                                    <img
+                                        src={(product.imagesUrls && product.imagesUrls.length > 0) ? product.imagesUrls[currentImageIndex] : (product.image || null)}
+                                        alt={productName}
+                                        className="w-full h-full object-cover transition-transform duration-700 md:group-hover:scale-110 cursor-zoom-in"
+                                    />
+                                    {product.originalPrice && product.originalPrice > product.price && (
+                                        <div className="absolute top-4 left-4 bg-brand-yellow text-black px-3 py-1 text-sm font-black uppercase tracking-widest border border-black z-10">
+                                            {t('sale')}
+                                        </div>
+                                    )}
+
+                                    {/* Navigation Arrows for Mobile (if multiple images) */}
+                                    {product.imagesUrls && product.imagesUrls.length > 1 && (
+                                        <div className="absolute inset-0 flex items-center justify-between px-4 md:hidden pointer-events-none">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCurrentImageIndex(prev => prev === 0 ? product.imagesUrls!.length - 1 : prev - 1);
+                                                }}
+                                                className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-lg pointer-events-auto active:scale-90 transition-transform"
+                                            >
+                                                <ArrowLeft className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCurrentImageIndex(prev => prev === product.imagesUrls!.length - 1 ? 0 : prev + 1);
+                                                }}
+                                                className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-lg pointer-events-auto active:scale-90 transition-transform"
+                                            >
+                                                <ArrowRight className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -317,7 +364,7 @@ const ProductView: React.FC<{
                                     items={[buyNowCartItem]}
                                     total={product.price * quantity}
                                     onClearCart={() => { }}
-                                    onSuccess={(data) => navigate('/thank-you', { state: data })}
+                                    onSuccess={() => setShowOrderForm(false)}
                                     compact
                                 />
                             </div>

@@ -21,7 +21,9 @@ export interface Product {
   nameAr: string;
   price: number; // Current selling price (Sale Price)
   originalPrice?: number; // Original price (if discount exists)
-  image: string;
+  image: string; // Keep for backward compatibility, will be images_urls[0]
+  imagesUrls?: string[];
+  imagesPublicIds?: string[];
   descriptionEn: string;
   descriptionAr: string;
   variants: ProductVariant[];

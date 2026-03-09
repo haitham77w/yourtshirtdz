@@ -102,7 +102,7 @@ export interface OrderFormProps {
   items: CartItem[];
   total: number;
   onClearCart: () => void;
-  onSuccess: (data: { firstName: string, phone: string }) => void;
+  onSuccess: () => void;
   /** If true, show compact layout (e.g. inside product page) */
   compact?: boolean;
 }
@@ -252,14 +252,14 @@ const OrderForm: React.FC<OrderFormProps> = ({ items, total, onClearCart, onSucc
             (itemsError.message?.includes('foreign key') || itemsError.message?.includes('product_id_fkey'));
           if (isOrderItemsFkError) {
             console.warn('Order saved but order_items failed (e.g. FK):', itemsError);
+            setIsSuccess(true);
             onClearCart();
-            onSuccess({ firstName: formData.firstName, phone: formData.phone });
           } else {
             throw itemsError;
           }
         } else {
+          setIsSuccess(true);
           onClearCart();
-          onSuccess({ firstName: formData.firstName, phone: formData.phone });
         }
       }
     } catch (err: any) {
@@ -273,8 +273,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ items, total, onClearCart, onSucc
       }
       if (errorMsg.includes('order_items') && (errorMsg.includes('foreign key') || errorMsg.includes('product_id_fkey'))) {
         // الطلبية انرسلت (orders)؛ نعرض صفحة الشكر بدل رسالة الخطأ
+        setIsSuccess(true);
         onClearCart();
-        onSuccess({ firstName: formData.firstName, phone: formData.phone });
       } else {
         setSubmitError(errorMsg);
       }
@@ -282,6 +282,44 @@ const OrderForm: React.FC<OrderFormProps> = ({ items, total, onClearCart, onSucc
       setIsSubmitting(false);
     }
   };
+
+  if (isSuccess) {
+    const successMsg = t('successMessage')
+      .replace('{name}', formData.firstName)
+      .replace('{phone}', formData.phone);
+
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-start pt-8 md:pt-12 px-4 text-center bg-gray-50">
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-brand-yellow p-6 md:p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-6 md:mb-8"
+        >
+          <CheckCircle className="w-16 h-16 md:w-20 md:h-20 text-black" />
+        </motion.div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="w-full max-w-2xl"
+        >
+          <h2 className="text-3xl md:text-6xl font-black mb-6 uppercase tracking-tighter">
+            {language === 'ar' ? 'تم استلام طلبك!' : 'ORDER RECEIVED!'}
+          </h2>
+          <div className="max-w-md mx-auto bg-white border-4 border-black p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-8">
+            <p className="text-lg font-bold leading-relaxed">{successMsg}</p>
+          </div>
+          <button
+            onClick={onSuccess}
+            className="group inline-flex items-center gap-4 bg-black text-white px-8 py-4 font-black text-lg uppercase tracking-wider hover:bg-brand-yellow hover:text-black transition-all"
+          >
+            {t('backToStore')}
+            <ArrowIcon className="w-6 h-6" />
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   const selectedWilayaData = wilayas.find((w) => w.id === Number(formData.wilayaId));
 

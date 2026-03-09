@@ -33,7 +33,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, total, onClearCart }) => {
       items={cart}
       total={total}
       onClearCart={onClearCart}
-      onSuccess={(data) => navigate('/thank-you', { state: data })}
+      onSuccess={() => navigate('/')}
     />
   );
 };
