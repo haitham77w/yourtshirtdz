@@ -103,11 +103,12 @@ export interface OrderFormProps {
   total: number;
   onClearCart: () => void;
   onSuccess: () => void;
+  onOrderSuccess?: () => void;
   /** If true, show compact layout (e.g. inside product page) */
   compact?: boolean;
 }
 
-const OrderForm: React.FC<OrderFormProps> = ({ items, total, onClearCart, onSuccess, compact }) => {
+const OrderForm: React.FC<OrderFormProps> = ({ items, total, onClearCart, onSuccess, onOrderSuccess, compact }) => {
   const { t, language, dir } = useLanguage();
   const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
@@ -252,14 +253,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ items, total, onClearCart, onSucc
             (itemsError.message?.includes('foreign key') || itemsError.message?.includes('product_id_fkey'));
           if (isOrderItemsFkError) {
             console.warn('Order saved but order_items failed (e.g. FK):', itemsError);
-            setIsSuccess(true);
-            onClearCart();
-          } else {
-            throw itemsError;
           }
         } else {
           setIsSuccess(true);
           onClearCart();
+          if (onOrderSuccess) onOrderSuccess();
         }
       }
     } catch (err: any) {
@@ -275,6 +273,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ items, total, onClearCart, onSucc
         // الطلبية انرسلت (orders)؛ نعرض صفحة الشكر بدل رسالة الخطأ
         setIsSuccess(true);
         onClearCart();
+        if (onOrderSuccess) onOrderSuccess();
       } else {
         setSubmitError(errorMsg);
       }

@@ -20,11 +20,10 @@ const ProductView: React.FC<{
     const [quantity, setQuantity] = useState(1);
     const [error, setError] = useState('');
     const [openSection, setOpenSection] = useState<string | null>('description');
-    const [showOrderForm, setShowOrderForm] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const orderFormRef = React.useRef<HTMLDivElement | null>(null);
 
     const { t, language, dir } = useLanguage();
+    const navigate = useNavigate();
     const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 
     useEffect(() => {
@@ -72,15 +71,10 @@ const ProductView: React.FC<{
             return;
         }
         setError('');
-        setShowOrderForm(true);
 
-        // تمرير الشاشة تلقائياً إلى نموذج الطلب (على موبايل و ديسكتوب)
-        setTimeout(() => {
-            orderFormRef.current?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }, 150);
+        // Add to cart and navigate to checkout
+        onAddToCart(product, selectedSize, selectedColor, quantity);
+        navigate('/checkout');
     };
 
     const buyNowCartItem: CartItem | null = selectedSize && selectedColor ? (() => {
@@ -347,28 +341,6 @@ const ProductView: React.FC<{
                             </button>
                         </div>
 
-                        {/* Buy Now - Order Form (appears when user clicks Buy Now) */}
-                        {showOrderForm && buyNowCartItem && (
-                            <div className="mb-10" ref={orderFormRef}>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-xl font-black uppercase">{t('checkoutTitle')}</h3>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowOrderForm(false)}
-                                        className="text-sm font-bold uppercase text-gray-500 hover:text-black"
-                                    >
-                                        {language === 'ar' ? 'إلغاء' : 'Cancel'}
-                                    </button>
-                                </div>
-                                <OrderForm
-                                    items={[buyNowCartItem]}
-                                    total={product.price * quantity}
-                                    onClearCart={() => { }}
-                                    onSuccess={() => setShowOrderForm(false)}
-                                    compact
-                                />
-                            </div>
-                        )}
 
                         {/* Info Accordions */}
                         <div className="border-t border-gray-200">

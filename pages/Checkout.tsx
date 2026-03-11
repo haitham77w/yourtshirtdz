@@ -13,8 +13,9 @@ interface CheckoutProps {
 const Checkout: React.FC<CheckoutProps> = ({ cart, total, onClearCart }) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const [isOrdered, setIsOrdered] = React.useState(false);
 
-  if (cart.length === 0) {
+  if (cart.length === 0 && !isOrdered) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center">
         <p className="text-xl font-bold mb-4 uppercase">{t('emptyCart')}</p>
@@ -34,6 +35,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, total, onClearCart }) => {
       total={total}
       onClearCart={onClearCart}
       onSuccess={() => navigate('/')}
+      onOrderSuccess={() => setIsOrdered(true)}
     />
   );
 };
