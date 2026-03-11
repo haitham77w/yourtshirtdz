@@ -7,13 +7,13 @@ import OrderForm from '../components/OrderForm';
 
 interface ProductDetailsProps {
     products: Product[];
-    onAddToCart: (product: Product, size: string, color: string, quantity: number) => void;
+    onAddToCart: (product: Product, size: string, color: string, quantity: number, openCart?: boolean) => void;
 }
 
 const ProductView: React.FC<{
     product: Product;
     relatedProducts: Product[];
-    onAddToCart: (product: Product, size: string, color: string, quantity: number) => void;
+    onAddToCart: (product: Product, size: string, color: string, quantity: number, openCart?: boolean) => void;
 }> = ({ product, relatedProducts, onAddToCart }) => {
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [selectedColor, setSelectedColor] = useState<string>('');
@@ -72,8 +72,8 @@ const ProductView: React.FC<{
         }
         setError('');
 
-        // Add to cart and navigate to checkout
-        onAddToCart(product, selectedSize, selectedColor, quantity);
+        // Add to cart and navigate to checkout (without opening drawer)
+        onAddToCart(product, selectedSize, selectedColor, quantity, false);
         navigate('/checkout');
     };
 

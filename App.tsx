@@ -127,7 +127,7 @@ function AppContent() {
     loadWithCache();
   }, []);
 
-  const addToCart = (product: Product, size: string, color: string, quantity: number) => {
+  const addToCart = (product: Product, size: string, color: string, quantity: number, openCart = true) => {
     const selectedVariant = product.variants.find(v => v.size === size && v.color === color);
     const selectedVariantId = selectedVariant ? selectedVariant.id : 'unknown';
 
@@ -141,7 +141,7 @@ function AppContent() {
     };
 
     setCart(prev => [...prev, newItem]);
-    setIsCartOpen(true);
+    if (openCart) setIsCartOpen(true);
   };
 
   const removeFromCart = (cartId: string) => {
