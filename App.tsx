@@ -15,7 +15,7 @@ import { supabase } from './lib/supabase';
 import { cacheGet, cacheSet, CACHE_KEYS } from './lib/cache';
 
 function AppContent() {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => cacheGet<CartItem[]>(CACHE_KEYS.CART) || []);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -126,6 +126,11 @@ function AppContent() {
 
     loadWithCache();
   }, []);
+
+  // Persist cart to localStorage whenever it changes
+  useEffect(() => {
+    cacheSet(CACHE_KEYS.CART, cart, 30 * 24 * 60 * 60 * 1000); // 30 days
+  }, [cart]);
 
   const addToCart = (product: Product, size: string, color: string, quantity: number, openCart = true) => {
     const selectedVariant = product.variants.find(v => v.size === size && v.color === color);

@@ -74,7 +74,8 @@ export function cacheClear(): void {
 export const CACHE_KEYS = {
   CATEGORIES: 'categories',
   PRODUCTS: 'products',
-  FEATURED_PRODUCTS: 'featured_products'
+  FEATURED_PRODUCTS: 'featured_products',
+  CART: 'cart'
 } as const;
 
 export const CACHE_TTL_MS = DEFAULT_TTL_MS;
